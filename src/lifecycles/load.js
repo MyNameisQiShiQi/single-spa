@@ -122,6 +122,7 @@ export function toLoadPromise(app) {
             );
           }
 
+          // 将app状态置为未安装状态，并获取子应用定义的生命周期方法
           app.status = NOT_BOOTSTRAPPED;
           app.bootstrap = flattenFnArray(appOpts, "bootstrap");
           app.mount = flattenFnArray(appOpts, "mount");

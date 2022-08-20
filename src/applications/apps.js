@@ -25,6 +25,7 @@ import { assign } from "../utils/assign";
 
 const apps = [];
 
+// 获取不同状态下的子应用
 export function getAppChanges() {
   const appsToUnload = [],
     appsToUnmount = [],
@@ -128,6 +129,7 @@ export function registerApplication(
     )
   );
 
+  // 浏览器环境
   if (isInBrowser) {
     ensureJQuerySupport();
     reroute();

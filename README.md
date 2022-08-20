@@ -5,6 +5,7 @@
 [![NPM Downloads](https://badgen.net/npm/dm/single-spa)](https://npmjs.org/package/single-spa)
 
 # single-spa
+fork single-spa做源码阅读与备注释义
 
 [Join the chat on Slack](https://join.slack.com/t/single-spa/shared_invite/zt-yxfqpl2u-PNx3uZtS3pgAXbOBWsdwOA)
 

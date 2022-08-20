@@ -34,6 +34,15 @@ export function triggerAppChange() {
   return reroute();
 }
 
+// load：当应用匹配路由时就会加载脚本（非函数，只是一种状态）。
+// bootstrap：应用内容首次挂载到页面前调用。
+// Mount：当主应用判定需要激活这个子应用时会调用, 实现子应用的挂载、页面渲染等逻辑。
+// unmount：当主应用判定需要卸载这个子应用时会调用, 实现组件卸载、清理事件监听等逻辑。
+// unload：非必要函数，一般不使用。unload之后会重新启动bootstrap流程。
+
+/**
+ * 核心函数，当加载app，start或者路由变更都会执行此函数
+ */
 export function reroute(pendingPromises = [], eventArguments) {
   if (appChangeUnderway) {
     return new Promise((resolve, reject) => {
@@ -45,6 +54,7 @@ export function reroute(pendingPromises = [], eventArguments) {
     });
   }
 
+  // 每次路由前都先获取不同状态下的子应用
   const {
     appsToUnload,
     appsToUnmount,
@@ -56,6 +66,7 @@ export function reroute(pendingPromises = [], eventArguments) {
     oldUrl = currentUrl,
     newUrl = (currentUrl = window.location.href);
 
+  // 执行start方法的时候就先置为true，然后执行performAppChanges
   if (isStarted()) {
     appChangeUnderway = true;
     appsThatChanged = appsToUnload.concat(
@@ -63,8 +74,10 @@ export function reroute(pendingPromises = [], eventArguments) {
       appsToUnmount,
       appsToMount
     );
+    // 执行子应用变更
     return performAppChanges();
   } else {
+    // 首次加载，未start之前都是loadApps，等将想要的子app都load完之后，可以执行start方法
     appsThatChanged = appsToLoad;
     return loadApps();
   }
@@ -73,11 +86,26 @@ export function reroute(pendingPromises = [], eventArguments) {
     navigationIsCanceled = true;
   }
 
+  // registerApplication({
+  //   name: 'app1',
+  //   app: () => import('src/app1/main.js'),
+  //   activeWhen: '/app1',
+  //   customProps: {
+  //     some: 'value',
+  //   }
+  // );
+  
+
+  /**
+   * 首次加载应用，其实就是执行上述对象的app函数
+   */
   function loadApps() {
     return Promise.resolve().then(() => {
       const loadPromises = appsToLoad.map(toLoadPromise);
 
       return (
+        // 并发调用返回的 Promise.resolve().then(), 调用loadApp, 返回 
+        // Promise.then(val) val => { bootstrap: async () => {}, mount: async () => {}, ... 
         Promise.all(loadPromises)
           .then(callAllEventListeners)
           // there are no mounted apps, before start() is called, so we always return []
@@ -90,9 +118,15 @@ export function reroute(pendingPromises = [], eventArguments) {
     });
   }
 
+  /**
+   * 执行子应用切换
+   */
   function performAppChanges() {
     return Promise.resolve().then(() => {
       // https://github.com/single-spa/single-spa/issues/545
+      /**
+       * 生命周期事情emit
+       */
       window.dispatchEvent(
         new CustomEvent(
           appsThatChanged.length === 0
@@ -102,6 +136,9 @@ export function reroute(pendingPromises = [], eventArguments) {
         )
       );
 
+      /**
+       * 生命周期事件emit
+       */
       window.dispatchEvent(
         new CustomEvent(
           "single-spa:before-routing-event",
@@ -145,6 +182,7 @@ export function reroute(pendingPromises = [], eventArguments) {
        */
       const loadThenMountPromises = appsToLoad.map((app) => {
         return toLoadPromise(app).then((app) =>
+          // 全部的已经load的app去mount
           tryToBootstrapAndMount(app, unmountAllPromise)
         );
       });
@@ -180,6 +218,9 @@ export function reroute(pendingPromises = [], eventArguments) {
     });
   }
 
+  /**
+   * 结束并返回已挂载的app
+   */
   function finishUpAndReturn() {
     const returnValue = getMountedApps();
     pendingPromises.forEach((promise) => promise.resolve(returnValue));
@@ -302,6 +343,9 @@ export function reroute(pendingPromises = [], eventArguments) {
  * this means that we shouldn't bootstrap and mount that application, thus we check
  * twice if that application should be active before bootstrapping and mounting.
  * https://github.com/single-spa/single-spa/issues/524
+ */
+/**
+ * 先bootstrap（安装），再mount（挂载）
  */
 function tryToBootstrapAndMount(app, unmountAllPromise) {
   if (shouldBeActive(app)) {

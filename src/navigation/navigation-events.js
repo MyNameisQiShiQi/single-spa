@@ -109,6 +109,7 @@ function patchedUpdateState(updateState, methodName) {
         // do not fire an artificial popstate event before single-spa is started,
         // since no single-spa applications need to know about routing events
         // outside of their own router.
+        // wrap pushState，在路由变更的时候能够做App的卸载与重载
         reroute([]);
       }
     }
@@ -171,10 +172,12 @@ if (isInBrowser) {
     return originalRemoveEventListener.apply(this, arguments);
   };
 
+  // wrap pushState，做到路由变更reroute来管理子应用
   window.history.pushState = patchedUpdateState(
     window.history.pushState,
     "pushState"
   );
+  // wrap replaceState，
   window.history.replaceState = patchedUpdateState(
     window.history.replaceState,
     "replaceState"

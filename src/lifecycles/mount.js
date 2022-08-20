@@ -22,6 +22,7 @@ export function toMountPromise(appOrParcel, hardFail) {
       beforeFirstMountFired = true;
     }
 
+    // 执行子app的mount函数
     return reasonableTime(appOrParcel, "mount")
       .then(() => {
         appOrParcel.status = MOUNTED;
